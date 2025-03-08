@@ -6,6 +6,25 @@ document.addEventListener('DOMContentLoaded', () => {
         Chart.defaults.color = '#ffffff80'; // Set default font color to white
     }
     
+document.getElementById("downloadBtn").replaceWith(document.getElementById("downloadBtn").cloneNode(true));
+
+document.getElementById("downloadBtn").addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    const button = event.target;
+    button.disabled = true; // Disable to prevent double-clicks
+
+    await fetchRecordsForDownload(); // Fetch data first
+
+    if (fetchedRecordsForDownload.length > 0) {
+        exportToExcel();
+    }
+
+    button.disabled = false; // Re-enable after process completes
+});
+
+
+
     const ctx = document.getElementById('chartCanvas').getContext('2d');
     let chart;
     let chartType = 'bar'; // Default chart type
@@ -15,18 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const course = document.getElementById('course').value;
         const batch = document.getElementById('batch').value;
         const lab = document.getElementById('lab').value;
-
+    
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // Set timeout to 10 seconds
-
+    
         document.querySelector('.loading').style.display = 'block'; // Show loading spinner
-
+    
         try {
             const response = await fetch(`/data?room=${room}&course=${course}&batch=${batch}&lab=${lab}`, {
                 signal: controller.signal
             });
             const data = await response.json();
-            await updateChart(data);
+            
+            await updateChart(data); // Keep your existing functionality
         } catch (error) {
             if (error.name === 'AbortError') {
                 console.error('Request timed out');
@@ -38,7 +58,57 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.loading').style.display = 'none'; // Hide loading spinner
         }
     }
+    
+    let fetchedRecordsForDownload = []; // Store records for Excel download
 
+    async function fetchRecordsForDownload() {
+        console.log("Fetching records...");
+    
+        const room = document.getElementById('room').value;
+        const course = document.getElementById('course').value;
+        const batch = document.getElementById('batch').value;
+        const lab = document.getElementById('lab').value;
+    
+        document.querySelector('.loading').style.display = 'block';
+    
+        try {
+            const response = await fetch(`/download-data?room=${room}&course=${course}&batch=${batch}&lab=${lab}`);
+            fetchedRecordsForDownload = await response.json();
+            console.log("Records fetched:", fetchedRecordsForDownload.length);
+        } catch (error) {
+            console.error('Error fetching records for download:', error);
+        } finally {
+            document.querySelector('.loading').style.display = 'none';
+        }
+    }
+    
+
+
+    function exportToExcel() {
+        console.log("Export function triggered");
+    
+        if (!fetchedRecordsForDownload || fetchedRecordsForDownload.length === 0) {
+            alert("No data available to download.");
+            return;
+        }
+    
+        // Convert JSON records to worksheet
+        const worksheet = XLSX.utils.json_to_sheet(fetchedRecordsForDownload);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Records");
+    
+        // Generate and save Excel file
+        const filename = `SurveySync_Records_${new Date().toISOString().slice(0, 10)}.xlsx`; // Custom filename;
+        console.log(`Downloading file: ${filename}`);
+        XLSX.writeFile(workbook, filename);
+    
+        // Notify user
+        setTimeout(() => {
+            alert(`File "${filename}" has been downloaded. Check your Downloads folder.`);
+        }, 500);
+    }
+    
+    
     function createBarChart(data) {
         return new Chart(ctx, {
             type: 'bar',
