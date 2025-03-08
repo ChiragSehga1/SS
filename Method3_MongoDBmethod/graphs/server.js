@@ -152,8 +152,61 @@ app.get('/data', async (req, res) => {
     }
 });
 
+app.get('/download-data', async (req, res) => {
+    try {
+        const { room, course, batch, lab } = req.query;
 
+        let records = []; // Store actual records
 
+        async function getRoomNumber(labID) {
+            const schedule = await db.collection('Schedule').findOne({ labID: labID });
+            return schedule ? schedule.labNo : null;
+        }
+
+        async function processCursor(cursor, dbName) {
+            const docs = await cursor.toArray();
+            for (const doc of docs) {
+                const [docCourse, docBatch, docLab] = doc.labID.split('-');
+                const roomNumber = await getRoomNumber(doc.labID);
+
+                const isCourseMatch = !course || docCourse === course;
+                const isBatchMatch = !batch || docBatch === batch;
+                const isLabMatch = !lab || docLab === lab;
+                const isRoomMatch = !room || roomNumber === room;
+
+                if (isCourseMatch && isBatchMatch && isLabMatch && isRoomMatch) {
+                    records.push({
+                        db: dbName,
+                        room: roomNumber,
+                        course: docCourse,
+                        batch: docBatch,
+                        lab: docLab,
+                        response: doc.response || null,
+                        helpEnded: doc.helpEnded || null
+                    });
+                }
+            }
+        }
+
+        // Process Responses
+        const responsesCursor = db.collection('Responses').find({});
+        await processCursor(responsesCursor, 'Responses');
+
+        // Process Helps
+        const helpsCursor = db.collection('Helps').find({});
+        await processCursor(helpsCursor, 'Helps');
+
+        // Process UnresolvedHelps
+        const unresolvedHelpsCursor = db.collection('UnresolvedHelps').find({});
+        await processCursor(unresolvedHelpsCursor, 'UnresolvedHelps');
+
+        // Send full records
+        res.json(records);
+    } catch (error) {
+        console.error('Error fetching data for download:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
 
 
 // Handle 404 errors
