@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="scripts.js"></script> <!-- Your script must come after -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Visualization</title>
+    <title>Dashboard | SurveySync </title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
 </head>
@@ -47,6 +49,12 @@
                     <option value="doughnut">Doughnut</option>
                 </select>
             </section>
+            <button id="downloadBtn">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14m0 0-5-5m5 5 5-5M5 19h14"></path>
+                </svg>
+            </button>
+            
         </section>
 
         <section class="chart">
